@@ -19,13 +19,16 @@ class Grid(object):
     DEFAULT_MAX_ITERATIONS  = 255
     DEFAULT_SCALE           = 3.0
     MAGNIFICATION_PER_CLICK = 0.5
+    MANDLEBROT              = lambda x, y: x ** 2 + y
+    TOWER                   = lambda x, y: x ** x + y
 
     def __init__(self, width, height, elementwise=False, centre=complex(0, 0),
                  scale=DEFAULT_SCALE, threshold=DEFAULT_THRESHOLD,
-                 iterations=DEFAULT_MAX_ITERATIONS):
+                 iterations=DEFAULT_MAX_ITERATIONS, funct=MANDLEBROT):
         self.centre, self.scale           = centre, scale
         self.elementwise, self.threshold  = elementwise, threshold
         self.width, self.height           = width, height
+        self.funct                        = funct
         self.halfwidth, self.halfheight   = width // 2, height // 2
         self.widthrange, self.heightrange = range(width), range(height)
         self.iterations                   = range(1, iterations)
@@ -34,7 +37,7 @@ class Grid(object):
     def checknum(self, number):
         newval = number
         for iteration in self.iterations:
-            newval = newval * newval + number
+            newval = self.funct(newval, number)
             if abs(newval) > self.threshold:
                 return iteration
         return False
@@ -73,8 +76,8 @@ class Grid(object):
             newvalues       = np.zeros(complexvals.shape, dtype=np.complex128)
             iterationcounts = np.zeros(newvalues.shape, dtype=int)
             for iteration in self.iterations:
-                newvalues[stillchecking] = (newvalues[stillchecking] ** 2 +
-                                            complexvals[stillchecking])
+                newvalues[stillchecking] = self.funct(newvalues[stillchecking],
+                                                      complexvals[stillchecking])
                 iterationcounts[np.greater(np.abs(newvalues), self.threshold,
                                            out=np.full(complexvals.shape, False),
                                            where=stillchecking)] = iteration
@@ -97,7 +100,7 @@ if __name__ == '__main__':
     import pygame
 
     screen = pygame.display.set_mode((200, 150), 24)
-    grid = Grid(200, 150, ELEMENTWISE)
+    grid = Grid(200, 150, ELEMENTWISE, funct=Grid.MANDLEBROT)
     grid.fill(screen)
     pygame.display.flip()
     show, buttonClear = True, True
